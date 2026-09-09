@@ -1,0 +1,26 @@
+{
+    "flutter":  {
+                    "platforms":  {
+                                      "android":  {
+                                                      "default":  {
+                                                                      "projectId":  "movies-app-route-2026",
+                                                                      "appId":  "1:782171987659:android:ca32f1accb2050bdaec54e",
+                                                                      "fileOutput":  "android/app/google-services.json"
+                                                                  }
+                                                  },
+                                      "dart":  {
+                                                   "lib/firebase_options.dart":  {
+                                                                                     "projectId":  "movies-app-route-2026",
+                                                                                     "configurations":  {
+                                                                                                            "android":  "1:782171987659:android:ca32f1accb2050bdaec54e"
+                                                                                                        }
+                                                                                 }
+                                               }
+                                  }
+                },
+    "auth":  {
+                 "providers":  {
+                                   "emailPassword":  true
+                               }
+             }
+}

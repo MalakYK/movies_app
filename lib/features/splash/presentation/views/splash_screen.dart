@@ -17,18 +17,14 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    _goNext();
+  }
 
-    Timer(
-      const Duration(seconds: 2),
-          () {
-        if (!mounted) return;
+  Future<void> _goNext() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
 
-        Navigator.pushReplacementNamed(
-          context,
-          AppRoutes.onboarding,
-        );
-      },
-    );
+    Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
   }
 
   @override
@@ -40,7 +36,6 @@ class _SplashScreenState extends State<SplashScreen> {
           AppAssets.logo,
           width: 280,
           height: 280,
-          fit: BoxFit.contain,
         ),
       ),
     );

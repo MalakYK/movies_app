@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -205,7 +206,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: AppStrings.startWatchingNow,
       description: null,
       nextText: AppStrings.finish,
-      onNext: () {
+      onNext: () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('onboarding_seen', true);
+
+        if (!mounted) return;
+
         Navigator.pushReplacementNamed(
           context,
           AppRoutes.login,
