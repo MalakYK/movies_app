@@ -16,6 +16,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   void checkAuthStatus() {
     _subscription?.cancel();
+
     _subscription = repository.authStateChanges.listen((user) {
       emit(
         user == null
@@ -27,18 +28,29 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> login(String email, String password) async {
     emit(const AuthState.loading());
+
     try {
       final result = await repository.login(email, password);
       final user = result.user;
+
       if (user == null) {
-        emit(const AuthState.failure('Login failed. Please try again.'));
+        emit(
+          const AuthState.failure(
+            'Login failed. Please try again.',
+          ),
+        );
         return;
       }
+
       emit(AuthState.authenticated(user));
     } on FirebaseAuthException catch (e) {
       emit(AuthState.failure(_mapError(e)));
     } catch (_) {
-      emit(const AuthState.failure('Something went wrong. Please try again.'));
+      emit(
+        const AuthState.failure(
+          'Something went wrong. Please try again.',
+        ),
+      );
     }
   }
 
@@ -47,37 +59,61 @@ class AuthCubit extends Cubit<AuthState> {
     required String email,
     required String password,
     required String phone,
+    required String avatar,
   }) async {
     emit(const AuthState.loading());
+
     try {
       final result = await repository.register(
         name: name,
         email: email,
         password: password,
         phone: phone,
+        avatar: avatar,
       );
+
       final user = result.user;
+
       if (user == null) {
-        emit(const AuthState.failure('Registration failed. Please try again.'));
+        emit(
+          const AuthState.failure(
+            'Registration failed. Please try again.',
+          ),
+        );
         return;
       }
+
       emit(AuthState.authenticated(user));
     } on FirebaseAuthException catch (e) {
       emit(AuthState.failure(_mapError(e)));
     } catch (_) {
-      emit(const AuthState.failure('Something went wrong. Please try again.'));
+      emit(
+        const AuthState.failure(
+          'Something went wrong. Please try again.',
+        ),
+      );
     }
   }
 
   Future<void> resetPassword(String email) async {
     emit(const AuthState.loading());
+
     try {
       await repository.resetPassword(email);
-      emit(const AuthState.actionSuccess('Password reset email sent.'));
+
+      emit(
+        const AuthState.actionSuccess(
+          'Password reset email sent.',
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       emit(AuthState.failure(_mapError(e)));
     } catch (_) {
-      emit(const AuthState.failure('Something went wrong. Please try again.'));
+      emit(
+        const AuthState.failure(
+          'Something went wrong. Please try again.',
+        ),
+      );
     }
   }
 
@@ -86,7 +122,11 @@ class AuthCubit extends Cubit<AuthState> {
       await repository.logout();
       emit(const AuthState.unauthenticated());
     } catch (_) {
-      emit(const AuthState.failure('Unable to log out. Please try again.'));
+      emit(
+        const AuthState.failure(
+          'Unable to log out. Please try again.',
+        ),
+      );
     }
   }
 
@@ -96,34 +136,50 @@ class AuthCubit extends Cubit<AuthState> {
     required String avatar,
   }) async {
     emit(const AuthState.loading());
+
     try {
       await repository.updateProfile(
         name: name,
         phone: phone,
         avatar: avatar,
       );
+
       final user = repository.currentUser;
+
       if (user != null) {
         emit(AuthState.authenticated(user));
       } else {
-        emit(const AuthState.failure('User session expired.'));
+        emit(
+          const AuthState.failure(
+            'User session expired.',
+          ),
+        );
       }
     } on FirebaseAuthException catch (e) {
       emit(AuthState.failure(_mapError(e)));
     } catch (_) {
-      emit(const AuthState.failure('Unable to update profile.'));
+      emit(
+        const AuthState.failure(
+          'Unable to update profile.',
+        ),
+      );
     }
   }
 
   Future<void> deleteAccount() async {
     emit(const AuthState.loading());
+
     try {
       await repository.deleteAccount();
       emit(const AuthState.unauthenticated());
     } on FirebaseAuthException catch (e) {
       emit(AuthState.failure(_mapError(e)));
     } catch (_) {
-      emit(const AuthState.failure('Unable to delete account.'));
+      emit(
+        const AuthState.failure(
+          'Unable to delete account.',
+        ),
+      );
     }
   }
 
@@ -133,18 +189,25 @@ class AuthCubit extends Cubit<AuthState> {
       case 'wrong-password':
       case 'user-not-found':
         return 'Invalid email or password.';
+
       case 'email-already-in-use':
         return 'This email is already registered.';
+
       case 'weak-password':
         return 'Password is too weak.';
+
       case 'invalid-email':
         return 'Please enter a valid email.';
+
       case 'network-request-failed':
         return 'Check your internet connection.';
+
       case 'too-many-requests':
         return 'Too many attempts. Please try later.';
+
       case 'requires-recent-login':
         return 'Please log in again before deleting your account.';
+
       default:
         return e.message ?? 'Authentication failed.';
     }

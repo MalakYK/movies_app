@@ -1,6 +1,6 @@
-import 'dart:async';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -22,9 +22,33 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _goNext() async {
     await Future.delayed(const Duration(seconds: 2));
+
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingSeen = prefs.getBool('onboarding_seen') ?? false;
+
+    if (!onboardingSeen) {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.onboarding,
+      );
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.home,
+      );
+    } else {
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.login,
+      );
+    }
   }
 
   @override

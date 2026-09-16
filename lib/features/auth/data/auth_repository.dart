@@ -27,6 +27,7 @@ class AuthRepository {
     required String email,
     required String password,
     required String phone,
+    required String avatar,
   }) async {
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email.trim(),
@@ -48,7 +49,7 @@ class AuthRepository {
       'name': name.trim(),
       'email': email.trim(),
       'phone': phone.trim(),
-      'avatar': AppAssets.profileAvatar,
+      'avatar': avatar,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -58,7 +59,9 @@ class AuthRepository {
   }
 
   Future<void> resetPassword(String email) {
-    return _auth.sendPasswordResetEmail(email: email.trim());
+    return _auth.sendPasswordResetEmail(
+      email: email.trim(),
+    );
   }
 
   Future<void> logout() => _auth.signOut();
@@ -72,6 +75,7 @@ class AuthRepository {
     if (user == null) return;
 
     await user.updateDisplayName(name.trim());
+
     await _firestore.collection('users').doc(user.uid).set({
       'uid': user.uid,
       'name': name.trim(),

@@ -38,6 +38,7 @@ class MovieApiService {
 
     final data = response.data as Map<String, dynamic>;
     final movies = (data['data']?['movies'] as List?) ?? const [];
+
     return movies
         .map((movie) => MovieModel.fromJson(movie as Map<String, dynamic>))
         .toList();
@@ -46,22 +47,34 @@ class MovieApiService {
   Future<MovieModel> getMovieDetails(int movieId) async {
     final response = await _dio.get(
       ApiConstants.movieDetails,
-      queryParameters: {'movie_id': movieId},
+      queryParameters: {
+        'movie_id': movieId,
+        'with_cast': true,
+        'with_images': true,
+      },
     );
-    return MovieModel.fromJson(
-      (response.data as Map<String, dynamic>)['data']['movie']
-      as Map<String, dynamic>,
-    );
+
+    final data = response.data as Map<String, dynamic>;
+    final movieData = data['data']?['movie'] as Map<String, dynamic>?;
+
+    if (movieData == null) {
+      throw Exception('Movie details not found.');
+    }
+
+    return MovieModel.fromJson(movieData);
   }
 
   Future<List<MovieModel>> getSuggestions(int movieId) async {
     final response = await _dio.get(
       ApiConstants.movieSuggestions,
-      queryParameters: {'movie_id': movieId},
+      queryParameters: {
+        'movie_id': movieId,
+      },
     );
-    final movies =
-        ((response.data as Map<String, dynamic>)['data']['movies'] as List?) ??
-            const [];
+
+    final data = response.data as Map<String, dynamic>;
+    final movies = (data['data']?['movies'] as List?) ?? const [];
+
     return movies
         .map((movie) => MovieModel.fromJson(movie as Map<String, dynamic>))
         .toList();

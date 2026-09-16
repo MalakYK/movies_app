@@ -30,6 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     'assets/images/gamer_2.png',
     'assets/images/gamer_1.png',
   ];
+
   int selectedAvatarIndex = 0;
 
   @override
@@ -65,10 +66,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     context.read<AuthCubit>().register(
-      name: name.text,
-      email: email.text,
+      name: name.text.trim(),
+      email: email.text.trim(),
       password: password.text,
-      phone: phone.text,
+      phone: phone.text.trim(),
+      avatar: avatars[selectedAvatarIndex],
     );
   }
 
@@ -123,62 +125,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(width: 48),
                   ],
                 ),
+
                 const SizedBox(height: 16),
+
                 SizedBox(
                   height: 100,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(avatars.length, (index) {
-                      final isSelected = selectedAvatarIndex == index;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedAvatarIndex = index;
-                          });
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 10),
-                          padding: const EdgeInsets.all(3),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? AppColors.primary
-                                  : Colors.transparent,
-                              width: 3,
+                    children: List.generate(
+                      avatars.length,
+                          (index) {
+                        final isSelected =
+                            selectedAvatarIndex == index;
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedAvatarIndex = index;
+                            });
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                            ),
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                width: 3,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: isSelected ? 40 : 32,
+                              backgroundColor: Colors.transparent,
+                              backgroundImage:
+                              AssetImage(avatars[index]),
                             ),
                           ),
-                          child: CircleAvatar(
-                            radius: isSelected ? 40 : 32,
-                            backgroundColor: Colors.transparent,
-                            backgroundImage: AssetImage(avatars[index]),
-                          ),
-                        ),
-                      );
-                    }),
+                        );
+                      },
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 20),
+
                 _field(
                   name,
                   AppStrings.name,
                   'assets/icons/icon _Identification_.svg',
                 ),
+
                 const SizedBox(height: 12),
+
                 _field(
                   email,
                   AppStrings.email,
                   'assets/icons/email.svg',
                   keyboard: TextInputType.emailAddress,
                 ),
+
                 const SizedBox(height: 12),
+
                 _field(
                   password,
                   AppStrings.password,
                   'assets/icons/password.svg',
                   obscure: true,
                 ),
+
                 const SizedBox(height: 12),
+
                 _field(
                   confirm,
                   AppStrings.confirmPassword,
@@ -186,17 +206,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscure: true,
                   confirm: true,
                 ),
+
                 const SizedBox(height: 12),
+
                 _field(
                   phone,
                   AppStrings.phoneNumber,
                   'assets/icons/phone.svg',
                   keyboard: TextInputType.phone,
                 ),
+
                 const SizedBox(height: 20),
+
                 BlocBuilder<AuthCubit, AuthState>(
                   builder: (_, state) {
-                    final loading = state.status == AuthStatus.loading;
+                    final loading =
+                        state.status == AuthStatus.loading;
+
                     return SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -225,13 +251,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     );
                   },
                 ),
+
                 const SizedBox(height: 16),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
                       AppStrings.alreadyHaveAccount,
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.pushReplacementNamed(
@@ -248,7 +278,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 20),
+
                 GestureDetector(
                   onTap: () {
                     setState(() {
@@ -258,14 +290,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Container(
                     width: 70,
                     height: 34,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.primary, width: 1.5),
+                      border: Border.all(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
                           width: 26,
@@ -325,7 +363,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         bool confirm = false,
         TextInputType? keyboard,
       }) {
-    final visible = confirm ? confirmVisible : passwordVisible;
+    final visible =
+    confirm ? confirmVisible : passwordVisible;
 
     return Container(
       height: 52,
@@ -337,12 +376,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         controller: controller,
         keyboardType: keyboard,
         obscureText: obscure && !visible,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(
+          color: Colors.white,
+        ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
+          hintStyle: const TextStyle(
+            color: Colors.white54,
+            fontSize: 14,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 14,
+          ),
           prefixIcon: Padding(
             padding: const EdgeInsets.all(14),
             child: SvgPicture.asset(
@@ -366,7 +412,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               });
             },
             icon: Icon(
-              visible ? Icons.visibility : Icons.visibility_off,
+              visible
+                  ? Icons.visibility
+                  : Icons.visibility_off,
               color: Colors.white54,
               size: 20,
             ),
