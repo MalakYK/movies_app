@@ -2,12 +2,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'core/theme/app_theme.dart';
 import 'core/routes/app_routes.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/favorites/data/favorites_repository.dart';
 import 'features/favorites/presentation/cubit/favorites_cubit.dart';
+import 'features/history/data/history_repository.dart';
+import 'features/history/presentation/cubit/history_cubit.dart';
 import 'features/splash/presentation/views/splash_screen.dart';
 import 'firebase_options.dart';
 
@@ -29,10 +31,24 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthCubit>(
-          create: (_) => AuthCubit(AuthRepository())..checkAuthStatus(),
+          create: (_) => AuthCubit(
+            AuthRepository(),
+          )..checkAuthStatus(),
         ),
+
+        // FavoritesCubit and HistoryCubit already start listening
+        // inside their own constructors, so no extra cascade call
+        // is needed here.
         BlocProvider<FavoritesCubit>(
-          create: (_) => FavoritesCubit(FavoritesRepository()),
+          create: (_) => FavoritesCubit(
+            FavoritesRepository(),
+          ),
+        ),
+
+        BlocProvider<HistoryCubit>(
+          create: (_) => HistoryCubit(
+            HistoryRepository(),
+          ),
         ),
       ],
       child: MaterialApp(

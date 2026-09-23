@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
+import '../../../history/presentation/cubit/history_cubit.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../favorites/presentation/cubit/favorites_cubit.dart';
@@ -40,30 +40,40 @@ class _MovieDetailsView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: BlocBuilder<MovieDetailsCubit, MovieDetailsState>(
-        builder: (context, state) {
-          if (state.status == MovieDetailsStatus.loading ||
-              state.status == MovieDetailsStatus.initial) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
-            );
+      body: BlocListener<MovieDetailsCubit, MovieDetailsState>(
+        listenWhen: (previous, current) =>
+        previous.status != current.status &&
+            current.status == MovieDetailsStatus.success &&
+            current.movie != null,
+        listener: (context, state) {
+          final movie = state.movie;
+          if (movie != null) {
+            context.read<HistoryCubit>().addToHistory(movie);
           }
-
-          if (state.status == MovieDetailsStatus.failure || state.movie == null) {
-            return _ErrorView(
-              onRetry: () {
-                context.read<MovieDetailsCubit>().retry(movieId);
-              },
-            );
-          }
-
-          return _DetailsContent(
-            movie: state.movie!,
-            suggestions: state.suggestions,
-          );
         },
+        child: BlocBuilder<MovieDetailsCubit, MovieDetailsState>(
+          builder: (context, state) {
+            if (state.status == MovieDetailsStatus.loading ||
+                state.status == MovieDetailsStatus.initial) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+
+            if (state.status == MovieDetailsStatus.failure ||
+                state.movie == null) {
+              return _ErrorView(
+                onRetry: () =>
+                    context.read<MovieDetailsCubit>().retry(movieId),
+              );
+            }
+
+            return _DetailsContent(
+              movie: state.movie!,
+              suggestions: state.suggestions,
+            );
+          },
+        ),
       ),
     );
   }
@@ -106,14 +116,12 @@ class _DetailsContent extends StatelessWidget {
                     const SizedBox(height: 14),
                     _MovieStats(movie: movie),
                     const SizedBox(height: 24),
-
                     if (movie.screenshots.isNotEmpty) ...[
                       const _SectionHeader(title: 'Screen Shots'),
                       const SizedBox(height: 12),
                       _Screenshots(screenshots: movie.screenshots),
                       const SizedBox(height: 24),
                     ],
-
                     if (suggestions.isNotEmpty) ...[
                       const _SectionHeader(title: 'Similar'),
                       const SizedBox(height: 12),
@@ -123,14 +131,12 @@ class _DetailsContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                     ],
-
                     if (movie.summary != null && movie.summary!.isNotEmpty) ...[
                       const _SectionHeader(title: 'Summary'),
                       const SizedBox(height: 12),
                       _Description(movie: movie),
                       const SizedBox(height: 24),
                     ],
-
                     if (movie.cast != null && movie.cast!.isNotEmpty) ...[
                       const _SectionHeader(title: 'Cast'),
                       const SizedBox(height: 12),
@@ -140,7 +146,6 @@ class _DetailsContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                     ],
-
                     if (movie.genres.isNotEmpty) ...[
                       const _SectionHeader(title: 'Genres'),
                       const SizedBox(height: 12),
@@ -169,7 +174,7 @@ class _SectionHeader extends StatelessWidget {
       title,
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: FontWeight.bold,
       ),
     );
@@ -183,8 +188,11 @@ class _MoviePosterWithHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final headerHeight = (screenHeight * 0.55).clamp(380.0, 600.0);
+
     return SizedBox(
-      height: 600,
+      height: headerHeight,
       width: double.infinity,
       child: Stack(
         children: [
@@ -222,7 +230,7 @@ class _MoviePosterWithHeader extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.4),
+                    Colors.black.withOpacity(0.5),
                     Colors.transparent,
                     AppColors.background.withOpacity(0.8),
                     AppColors.background,
@@ -233,35 +241,30 @@ class _MoviePosterWithHeader extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 45,
+            top: MediaQuery.of(context).padding.top + 10,
             left: 16,
             right: 16,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4.0),
-                    child: Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 35,
-                    ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Colors.white,
+                    size: 28,
                   ),
                 ),
                 BlocBuilder<FavoritesCubit, FavoritesState>(
                   builder: (context, state) {
                     final isFavorite = state.movies.any((m) => m.id == movie.id);
-                    return GestureDetector(
-                      onTap: () => context.read<FavoritesCubit>().toggle(movie),
-                      child: Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: Icon(
-                          isFavorite ? Icons.bookmark : Icons.bookmark_border,
-                          color: Colors.white,
-                          size: 35,
-                        ),
+                    return IconButton(
+                      onPressed: () =>
+                          context.read<FavoritesCubit>().toggle(movie),
+                      icon: Icon(
+                        isFavorite ? Icons.bookmark : Icons.bookmark_border,
+                        color: isFavorite ? AppColors.primary : Colors.white,
+                        size: 32,
                       ),
                     );
                   },
@@ -269,13 +272,11 @@ class _MoviePosterWithHeader extends StatelessWidget {
               ],
             ),
           ),
-          Positioned(
-            top: 248,
-            left: 166,
+          Center(
             child: SvgPicture.asset(
               'assets/icons/play.svg',
-              width: 97,
-              height: 97,
+              width: 80,
+              height: 80,
             ),
           ),
         ],
@@ -321,7 +322,7 @@ class _MovieYear extends StatelessWidget {
         movie.year ?? '-',
         style: const TextStyle(
           color: Colors.white54,
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -338,7 +339,7 @@ class _WatchButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 58,
+      height: 52,
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
@@ -352,7 +353,7 @@ class _WatchButton extends StatelessWidget {
         child: const Text(
           'Watch',
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -407,7 +408,7 @@ class _StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 47,
+      height: 45,
       decoration: BoxDecoration(
         color: AppColors.fieldBackground,
         borderRadius: BorderRadius.circular(16),
@@ -417,16 +418,20 @@ class _StatItem extends StatelessWidget {
         children: [
           SvgPicture.asset(
             svgPath,
-            width: 28,
-            height: 28,
+            width: 22,
+            height: 22,
           ),
-          const SizedBox(width: 18),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -450,9 +455,8 @@ class _Screenshots extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 12.0),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: SizedBox(
-              height: 167,
-              width: double.infinity,
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
               child: CachedNetworkImage(
                 imageUrl: url,
                 fit: BoxFit.cover,
@@ -489,7 +493,7 @@ class _SuggestionsGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: isTablet ? 4 : 2,
-        childAspectRatio: 189 / 279,
+        childAspectRatio: 0.68,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -529,9 +533,9 @@ class _Description extends StatelessWidget {
       movie.summary ?? '',
       style: const TextStyle(
         color: Colors.white,
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: FontWeight.w400,
-        height: 1.39,
+        height: 1.4,
       ),
     );
   }
@@ -554,7 +558,7 @@ class _CastList extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          mainAxisExtent: 92,
+          mainAxisExtent: 85,
           crossAxisSpacing: 12,
           mainAxisSpacing: 8,
         ),
@@ -577,9 +581,9 @@ class _CastCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 92,
+      height: 85,
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: AppColors.fieldBackground,
         borderRadius: BorderRadius.circular(12),
@@ -590,12 +594,12 @@ class _CastCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: CachedNetworkImage(
               imageUrl: actor.urlSmallImage ?? '',
-              width: 60,
-              height: 68,
+              width: 55,
+              height: 65,
               fit: BoxFit.cover,
               errorWidget: (_, __, ___) => Container(
-                width: 60,
-                height: 68,
+                width: 55,
+                height: 65,
                 color: Colors.grey[800],
                 child: const Icon(Icons.person, color: Colors.white),
               ),
@@ -608,23 +612,23 @@ class _CastCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Name : ${actor.name ?? 'N/A'}',
+                  'Name: ${actor.name ?? 'N/A'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Character : ${actor.characterName ?? 'N/A'}',
+                  'Character: ${actor.characterName ?? 'N/A'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                    color: Colors.white54,
+                    fontSize: 14,
                   ),
                 ),
               ],
@@ -648,7 +652,7 @@ class _Genres extends StatelessWidget {
       runSpacing: 8,
       children: movie.genres.map((genre) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: AppColors.fieldBackground,
             borderRadius: BorderRadius.circular(12),
@@ -657,7 +661,7 @@ class _Genres extends StatelessWidget {
             genre,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -680,7 +684,8 @@ class _ErrorView extends StatelessWidget {
         children: [
           const Icon(Icons.error_outline, color: Colors.white54, size: 55),
           const SizedBox(height: 16),
-          const Text('Unable to load movie details.', style: TextStyle(color: Colors.white)),
+          const Text('Unable to load movie details.',
+              style: TextStyle(color: Colors.white)),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: onRetry,

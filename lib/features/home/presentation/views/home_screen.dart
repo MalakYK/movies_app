@@ -29,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _moviesCubit = MoviesCubit(MovieApiService())..loadHome();
-    context.read<FavoritesCubit>().listenToFavorites();
   }
 
   @override
@@ -170,7 +169,6 @@ class _HomeTab extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Available Now Image
                   Center(
                     child: Image.asset(
                       'assets/images/available_now.png',
@@ -190,8 +188,6 @@ class _HomeTab extends StatelessWidget {
                   const SizedBox(height: 5),
                   if (movies.isNotEmpty) _MoviesCarousel(movies: movies),
                   const SizedBox(height: 5),
-
-                  // Watch Now Image
                   Center(
                     child: Image.asset(
                       'assets/images/watch_now.png',
@@ -209,8 +205,6 @@ class _HomeTab extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-
-                  // Section Title & See More Button
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: _SectionTitle(
@@ -283,12 +277,15 @@ class _MoviesCarouselState extends State<_MoviesCarousel> {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
                 child: Image.network(
-                  currentMovie.largeCoverImage ?? currentMovie.mediumCoverImage ?? '',
+                  currentMovie.largeCoverImage ??
+                      currentMovie.mediumCoverImage ??
+                      '',
                   key: ValueKey(currentMovie.id),
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
-                  errorBuilder: (_, __, ___) => Container(color: AppColors.background),
+                  errorBuilder: (_, __, ___) =>
+                      Container(color: AppColors.background),
                 ),
               ),
             ),
@@ -341,7 +338,9 @@ class _MoviesCarouselState extends State<_MoviesCarousel> {
                         fit: StackFit.expand,
                         children: [
                           Image.network(
-                            movie.largeCoverImage ?? movie.mediumCoverImage ?? '',
+                            movie.largeCoverImage ??
+                                movie.mediumCoverImage ??
+                                '',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
                                 Container(color: AppColors.fieldBackground),

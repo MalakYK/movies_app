@@ -1,13 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../favorites/presentation/cubit/favorites_cubit.dart';
+import '../../../history/presentation/cubit/history_cubit.dart';
 import '../../../movies/presentation/widgets/movie_card.dart';
 
 class ProfileTab extends StatefulWidget {
@@ -17,7 +17,8 @@ class ProfileTab extends StatefulWidget {
   State<ProfileTab> createState() => _ProfileTabState();
 }
 
-class _ProfileTabState extends State<ProfileTab> with SingleTickerProviderStateMixin {
+class _ProfileTabState extends State<ProfileTab>
+    with SingleTickerProviderStateMixin {
   String _name = 'Malak Yasser';
   String _avatar = 'assets/images/Component_8.png';
   bool _loading = true;
@@ -28,10 +29,11 @@ class _ProfileTabState extends State<ProfileTab> with SingleTickerProviderStateM
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
+      if (!_tabController.indexIsChanging && mounted) {
         setState(() {});
       }
     });
+
     _loadProfile();
   }
 
@@ -53,20 +55,28 @@ class _ProfileTabState extends State<ProfileTab> with SingleTickerProviderStateM
         : 'Malak Yasser';
 
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final doc = await _getUserDocument(user.uid);
       final data = doc.data();
       if (data != null) {
-        _name = (data['name'] as String?)?.trim().isNotEmpty == true
-            ? (data['name'] as String).trim()
-            : _name;
-        _avatar = (data['avatar'] as String?) ?? 'assets/images/Component_8.png';
+        final name = data['name']?.toString().trim();
+        final avatar = data['avatar']?.toString();
+        if (name != null && name.isNotEmpty) _name = name;
+        if (avatar != null && avatar.isNotEmpty) _avatar = avatar;
       }
     } catch (_) {}
 
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> _getUserDocument(String uid) {
+    return FirebaseFirestore.instance.collection('users').doc(uid).get();
+  }
+
+  int _crossAxisCount(double width) {
+    if (width >= 1200) return 5;
+    if (width >= 900) return 4;
+    if (width >= 600) return 3;
+    return 2;
   }
 
   @override
@@ -88,180 +98,302 @@ class _ProfileTabState extends State<ProfileTab> with SingleTickerProviderStateM
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-            child: _loading
-                ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-                : Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Column(
-                      children: [
-                        GestureDetector(
-                          onTap: () async {
-                            await Navigator.pushNamed(
-                              context,
-                              AppRoutes.updateProfile,
-                            );
-                            _loadProfile();
-                          },
-                          child: CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.transparent,
-                            backgroundImage: AssetImage(_avatar),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 36),
-                    // Wish List & History
-                    Expanded(
-                      child: BlocBuilder<FavoritesCubit, FavoritesState>(
-                        builder: (context, state) {
-                          final count = state.movies.length;
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildStatColumn('$count', 'Wish List'),
-                              _buildStatColumn('0', 'History'),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final horizontalPadding =
+              constraints.maxWidth >= 700 ? 28.0 : 16.0;
+
+              return Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  20,
+                  horizontalPadding,
+                  0,
                 ),
-                const SizedBox(height: 20),
-                Row(
+                child: _loading
+                    ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                )
+                    : Column(
                   children: [
+                    _buildProfileHeader(constraints.maxWidth),
+                    const SizedBox(height: 20),
+                    _buildButtons(),
+                    const SizedBox(height: 16),
+                    _buildTabs(),
+                    const SizedBox(height: 4),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          await Navigator.pushNamed(
-                            context,
-                            AppRoutes.updateProfile,
-                          );
-                          _loadProfile();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF6BD00),
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text(
-                          'Edit Profile',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () => context.read<AuthCubit>().logout(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: Row(
-                        children: const [
-                          Text(
-                            'Exit',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Icon(Icons.logout, size: 18),
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildWatchListSection(constraints.maxWidth),
+                          _buildHistorySection(constraints.maxWidth),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                AnimatedBuilder(
-                  animation: _tabController,
-                  builder: (context, _) {
-                    final currentIndex = _tabController.index;
-                    return TabBar(
-                      controller: _tabController,
-                      indicatorColor: const Color(0xFFF6BD00),
-                      indicatorWeight: 3,
-                      dividerColor: Colors.transparent,
-                      labelColor: const Color(0xFFF6BD00),
-                      unselectedLabelColor: Colors.white,
-                      tabs: [
-                        Tab(
-                          icon: SvgPicture.asset(
-                            'assets/icons/watch_list.svg',
-                            width: 22,
-                            height: 22,
-                            colorFilter: ColorFilter.mode(
-                              currentIndex == 0
-                                  ? const Color(0xFFF6BD00)
-                                  : Colors.white,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          text: 'Watch List',
-                        ),
-                        Tab(
-                          icon: SvgPicture.asset(
-                            'assets/icons/history.svg',
-                            width: 22,
-                            height: 22,
-                            colorFilter: ColorFilter.mode(
-                              currentIndex == 1
-                                  ? const Color(0xFFF6BD00)
-                                  : Colors.white,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          text: 'History',
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildWatchListSection(),
-                      _buildEmptyState(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildProfileHeader(double width) {
+    final isWide = width >= 700;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          children: [
+            GestureDetector(
+              onTap: () async {
+                await Navigator.pushNamed(context, AppRoutes.updateProfile);
+                _loadProfile();
+              },
+              child: CircleAvatar(
+                radius: isWide ? 48 : 40,
+                backgroundColor: Colors.transparent,
+                backgroundImage: AssetImage(_avatar),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: isWide ? 150 : 100,
+              child: Text(
+                _name,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: BlocBuilder<FavoritesCubit, FavoritesState>(
+            builder: (context, favoriteState) {
+              return BlocBuilder<HistoryCubit, HistoryState>(
+                builder: (context, historyState) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildStatColumn(
+                        favoriteState.movies.length.toString(),
+                        'Wish List',
+                      ),
+                      _buildStatColumn(
+                        historyState.movies.length.toString(),
+                        'History',
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              await Navigator.pushNamed(context, AppRoutes.updateProfile);
+              _loadProfile();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+            child: const Text(
+              'Edit Profile',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        ElevatedButton(
+          onPressed: () => context.read<AuthCubit>().logout(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          ),
+          child: const Row(
+            children: [
+              Text(
+                'Exit',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              SizedBox(width: 6),
+              Icon(Icons.logout, size: 18),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabs() {
+    final currentIndex = _tabController.index;
+
+    return TabBar(
+      controller: _tabController,
+      indicatorColor: AppColors.primary,
+      indicatorWeight: 3,
+      dividerColor: Colors.transparent,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: Colors.white,
+      tabs: [
+        Tab(
+          icon: SvgPicture.asset(
+            'assets/icons/watch_list.svg',
+            width: 22,
+            height: 22,
+            colorFilter: ColorFilter.mode(
+              currentIndex == 0 ? AppColors.primary : Colors.white,
+              BlendMode.srcIn,
+            ),
+          ),
+          text: 'Watch List',
+        ),
+        Tab(
+          icon: SvgPicture.asset(
+            'assets/icons/history.svg',
+            width: 22,
+            height: 22,
+            colorFilter: ColorFilter.mode(
+              currentIndex == 1 ? AppColors.primary : Colors.white,
+              BlendMode.srcIn,
+            ),
+          ),
+          text: 'History',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWatchListSection(double width) {
+    return BlocBuilder<FavoritesCubit, FavoritesState>(
+      builder: (context, state) {
+        if (state.status == FavoritesStatus.loading && state.movies.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
+
+        if (state.movies.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          itemCount: state.movies.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _crossAxisCount(width),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 12,
+            childAspectRatio: .66,
+          ),
+          itemBuilder: (_, index) {
+            final movie = state.movies[index];
+
+            return MovieCard(
+              movie: movie,
+              isFavorite: true,
+              onFavorite: () => context.read<FavoritesCubit>().toggle(movie),
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.movieDetails,
+                  arguments: movie.id,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildHistorySection(double width) {
+    return BlocBuilder<HistoryCubit, HistoryState>(
+      builder: (context, state) {
+        if (state.status == HistoryStatus.loading && state.movies.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          );
+        }
+
+        if (state.status == HistoryStatus.failure) {
+          return const Center(
+            child: Text(
+              'Unable to load history',
+              style: TextStyle(color: Colors.white70),
+            ),
+          );
+        }
+
+        if (state.movies.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return GridView.builder(
+          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          itemCount: state.movies.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _crossAxisCount(width),
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 12,
+            childAspectRatio: .66,
+          ),
+          itemBuilder: (_, index) {
+            final movie = state.movies[index];
+
+            return BlocBuilder<FavoritesCubit, FavoritesState>(
+              builder: (context, favoriteState) {
+                final isFavorite =
+                favoriteState.movies.any((m) => m.id == movie.id);
+
+                return MovieCard(
+                  movie: movie,
+                  isFavorite: isFavorite,
+                  onFavorite: () => context.read<FavoritesCubit>().toggle(movie),
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.movieDetails,
+                      arguments: movie.id,
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -280,52 +412,9 @@ class _ProfileTabState extends State<ProfileTab> with SingleTickerProviderStateM
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
       ],
-    );
-  }
-
-  Widget _buildWatchListSection() {
-    return BlocBuilder<FavoritesCubit, FavoritesState>(
-      builder: (context, state) {
-        if (state.status == FavoritesStatus.loading) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
-        }
-
-        if (state.movies.isEmpty) {
-          return _buildEmptyState();
-        }
-
-        return GridView.builder(
-          padding: const EdgeInsets.only(top: 16, bottom: 8),
-          itemCount: state.movies.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 10,
-            childAspectRatio: .66,
-          ),
-          itemBuilder: (_, index) {
-            final movie = state.movies[index];
-            return MovieCard(
-              movie: movie,
-              isFavorite: true,
-              onFavorite: () => context.read<FavoritesCubit>().toggle(movie),
-              onTap: () => Navigator.pushNamed(
-                context,
-                AppRoutes.movieDetails,
-                arguments: movie.id,
-              ),
-            );
-          },
-        );
-      },
     );
   }
 

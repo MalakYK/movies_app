@@ -22,8 +22,7 @@ class MovieDetailsCubit extends Cubit<MovieDetailsState> {
     try {
       final movie = await _api.getMovieDetails(movieId);
 
-      final suggestions =
-      await _api.getSuggestions(movieId);
+      final suggestions = await _api.getSuggestions(movieId);
 
       emit(
         MovieDetailsState(
@@ -36,8 +35,7 @@ class MovieDetailsCubit extends Cubit<MovieDetailsState> {
       emit(
         state.copyWith(
           status: MovieDetailsStatus.failure,
-          errorMessage:
-          'Unable to load movie details.',
+          errorMessage: 'Unable to load movie details.',
         ),
       );
     }

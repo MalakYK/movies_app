@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -12,15 +11,21 @@ class FavoritesCubit extends Cubit<FavoritesState> {
   final FavoritesRepository repository;
   StreamSubscription<List<MovieModel>>? _subscription;
 
-  FavoritesCubit(this.repository) : super(const FavoritesState.initial());
+  FavoritesCubit(this.repository) : super(const FavoritesState.initial()) {
+    listenToFavorites();
+  }
 
   void listenToFavorites() {
     emit(const FavoritesState.loading());
     _subscription?.cancel();
     try {
       _subscription = repository.watchFavorites().listen(
-            (movies) => emit(FavoritesState.loaded(movies)),
-        onError: (error) => emit(FavoritesState.failure(error.toString())),
+            (movies) {
+          emit(FavoritesState.loaded(movies));
+        },
+        onError: (error) {
+          emit(FavoritesState.failure(error.toString()));
+        },
       );
     } catch (e) {
       emit(FavoritesState.failure(e.toString()));
@@ -28,15 +33,16 @@ class FavoritesCubit extends Cubit<FavoritesState> {
   }
 
   Future<void> toggle(MovieModel movie) async {
+    final isFav = state.movies.any((m) => m.id == movie.id);
+
     try {
-      final exists = await repository.isFavorite(movie.id);
-      if (exists) {
+      if (isFav) {
         await repository.remove(movie.id);
       } else {
         await repository.add(movie);
       }
     } catch (e) {
-      emit(FavoritesState.failure(e.toString()));
+      listenToFavorites();
     }
   }
 

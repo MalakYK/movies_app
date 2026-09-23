@@ -92,7 +92,7 @@ class MovieModel extends Equatable {
       titleLong: json['title_long'] as String?,
       year: json['year']?.toString(),
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
-      likeCount: json['like_count'] as int? ?? 0,
+      likeCount: (json['like_count'] as num?)?.toInt() ?? 0,
       mediumCoverImage: json['medium_cover_image'] as String?,
       largeCoverImage: json['large_cover_image'] as String?,
       backgroundImage: json['background_image'] as String?,
